@@ -31,7 +31,7 @@ func main() {
 	for {
 		t := time.NewTimer(10*time.Second)
 
-		txs := wrapping()
+		txs := wrapping("../../txs/", )
 		txRootHash := getTXRootHash(txs, blockchain.Last.Header.BlockHash)
 
 		var bh [32]byte
@@ -60,7 +60,7 @@ type Transaction struct {
 	Value int    `json:"value"`
 }
 
-func wrapping()  []Transaction{
+func wrapping(path string, fileName string)  []Transaction{
 	jsonFile, err := os.Open("../../txs/1.json")
 	// if we os.Open returns an error then handle it
 	if err != nil {
@@ -90,18 +90,23 @@ func wrapping()  []Transaction{
 		fmt.Printf("to: %s\n", txs.TXS[i].To)
 		fmt.Printf("value %d\n", txs.TXS[i].Value)
 	}
+
+	err = os.Rename(fmt.Sprintf("%s/%s", path, fileName), fmt.Sprintf("../../history/%s", fileName))
+	if err != nil {
+		panic(err)
+	}
+
 	return txs.TXS
 }
 
 func moveTX2History() {
-
+	os.RemoveAll("/tmp/")
 }
 
 func getTXRootHash(txs []Transaction, prevHash [32]byte) []byte{
 	seed := make([]byte, 40)
 	seed = crypto.Keccak512(seed)
 	seed = append(seed, prevHash[:]...)
-	//hashRes := crypto.Keccak256(append(seed,  blkHash...))
 	for _, tx := range(txs) {
 		decoded, err := hex.DecodeString(tx.Hash)
 		if err != nil {

@@ -10,29 +10,27 @@ import (
 
 type Miner struct {
 	//worker *Worker
-	halt               uint8
-	targetPrefixZeroes uint8
-	block              *types.Block
-	blockHash          types.Hash
-	threadNumber       uint8
-	nonce              uint32
+	TargetPrefixZeroes uint8
+	BlockHash          types.Hash
+	ThreadNumber       int
+	Nonce              int
 }
 
-func (miner *Miner) mine(c chan uint32, thNum int, nonce uint32) (bool, uint32) {
+func (miner *Miner) mine(c chan int, thNum int, nonce int) (bool, int) {
 	fmt.Printf("thread %d\n", thNum)
 	for {
-		if miner.nonce != 0 {
+		if miner.Nonce != 0 {
 			break
 		}
-		nonce += uint32(thNum)
+		nonce += thNum
 		seed := make([]byte, 40)
 		seed = crypto.Keccak512(seed)
 		seed = append(seed, byte(nonce))
-		blkHash :=  miner.block.Header.BlockHash[:]
-		hashRes := crypto.Keccak256(append(seed,  blkHash...))
+		seed = append(seed, miner.BlockHash[:]...)
+		hashRes := crypto.Keccak256(seed)
 
-		if miningHashCmp(miner.targetPrefixZeroes, hashRes) {
-			miner.nonce = nonce
+		if miningHashCmp(miner.TargetPrefixZeroes, hashRes) {
+			miner.Nonce = nonce
 			s := fmt.Sprintf("%s", hex.EncodeToString(hashRes))
 			fmt.Println("success routine")
 			fmt.Println(s)
@@ -50,18 +48,19 @@ func (self *Miner) update() {
 
 }
 
-func (miner *Miner) start() {
-	var i uint8
-	c := make(chan uint32)
+func (miner *Miner) Start(ch chan int, rootHash []byte) {
+	var i int
+	c := make(chan int)
 
-	for i = 0; i < miner.threadNumber; i++{
-		go miner.mine(c, int(i), uint32(int(i)*1000000000))
+	for i = 0; i < miner.ThreadNumber; i++{
+		go miner.mine(c, i, i*1000000000)
 	}
 	timeEla := 0
 	for {
 		select {
 			case n := <-c:
 				fmt.Printf("done nonce:%d\n",n)
+				ch <- n
 				return
 			case <-time.After(time.Second * 1):
 				timeEla++

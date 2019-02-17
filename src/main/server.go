@@ -2,18 +2,14 @@
 package main
 
 import (
+	. "amis_test/src/server"
 	"log"
 	"net"
 	"net/rpc"
 	"net/rpc/jsonrpc"
-	. "amis_test/src/server"
 )
 
 func main() {
-
-
-	//define mining loop
-
 
 	//accept tx loop
 	cal := new(Calculator)
@@ -32,6 +28,7 @@ func main() {
 			go server.ServeCodec(jsonrpc.NewServerCodec(conn))
 		}
 	}
-
-
 }
+
+
+

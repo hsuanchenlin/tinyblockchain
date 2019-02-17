@@ -3,8 +3,10 @@ package types
 import "math/big"
 
 type Transaction struct {
-	hash Hash
-	from Address
-	to Address
-	value big.Int
+	Hash Hash
+	From Address
+	To Address
+	Value big.Int
 }
+
+

@@ -15,7 +15,7 @@ func main() {
 		log.Fatal("dialing:", err)
 	}
 	// Synchronous call
-	args := &Args{7, 8}
+	args := &Args{ From: "abc", To: "def", Value: 10}
 	var reply int
 	c := jsonrpc.NewClient(client)
 	err = c.Call("Calculator.Add", args, &reply)

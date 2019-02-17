@@ -17,7 +17,7 @@ func TestMineSimple(*testing.T) {
 	header := types.Header{nil, bh, bh, 0}
 	blk := types.Block{  &header}
 	miner := Miner{0, 1, &blk, bh, 0, 0}
-	ch := make(chan uint32)
+	ch := make(chan int)
 	res, nonce := miner.mine(ch, 1,0)
 	fmt.Println(res,nonce)
 }
@@ -28,6 +28,9 @@ func TestMineMulti(*testing.T) {
 	copy(bh[:], s)
 	header := types.Header{nil, bh, bh, 0}
 	blk := types.Block{  &header}
-	miner := Miner{0, 4, &blk, bh, 4, 0}
-	miner.start()
+	miner := Miner{0, 3, &blk, bh, 4, 0}
+	ch := make(chan int)
+	go miner.Start(ch, bh[:])
+	ans := <-ch
+	fmt.Printf("ans %d", ans)
 }
