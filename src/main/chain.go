@@ -13,10 +13,26 @@ import (
 	"time"
 )
 
+const (
+	InitBalance = 100
+	BlockGenTime = 10 * time.Second
+)
+
+type TXS struct {
+	TXS []Transaction `json:"txs"`
+}
+
+type Transaction struct {
+	Hash   string `json:"hash"`
+	From   string `json:"from"`
+	To    string `json:"to"`
+	Value int    `json:"value"`
+}
+
 func main() {
 
-	var accs []types.Account
-	blockchain := &types.BlockChain{nil, &accs}
+	accs := make(map[string]int)
+	blockchain := &types.BlockChain{nil, accs}
 
 	tmp, err := hex.DecodeString("deadbeefdeadbeefdeadbeefdeadbeef")
 	if err != nil {
@@ -29,9 +45,21 @@ func main() {
 	blockchain.Last = &genesisBlk
 
 	for {
-		t := time.NewTimer(10*time.Second)
+		t := time.NewTimer(BlockGenTime)
 
-		txs := wrapping("../../txs/", )
+		files, err := ioutil.ReadDir("../../txs/")
+		if err != nil {
+			log.Fatal(err)
+		}
+		var txs []Transaction
+		for _, f := range files {
+			fmt.Println(f.Name())
+			err = wrapping("../../txs/", f.Name(), txs)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
 		txRootHash := getTXRootHash(txs, blockchain.Last.Header.BlockHash)
 
 		var bh [32]byte
@@ -46,22 +74,14 @@ func main() {
 		blockchain.Last = &blk
 		expire := <- t.C
 		fmt.Printf("Expiration time: %v.\n", expire)
+		updateBalance(accs, txs)
 	}
 }
 
-type TXS struct {
-	TXS []Transaction `json:"txs"`
-}
 
-type Transaction struct {
-	Hash   string `json:"hash"`
-	From   string `json:"from"`
-	To    string `json:"to"`
-	Value int    `json:"value"`
-}
 
-func wrapping(path string, fileName string)  []Transaction{
-	jsonFile, err := os.Open("../../txs/1.json")
+func wrapping(path string, fileName string, wtx []Transaction) error {
+	jsonFile, err := os.Open(path+fileName)
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		fmt.Println(err)
@@ -95,19 +115,15 @@ func wrapping(path string, fileName string)  []Transaction{
 	if err != nil {
 		panic(err)
 	}
-
-	return txs.TXS
-}
-
-func moveTX2History() {
-	os.RemoveAll("/tmp/")
+	wtx = append(wtx, txs.TXS[0])
+	return nil
 }
 
 func getTXRootHash(txs []Transaction, prevHash [32]byte) []byte{
 	seed := make([]byte, 40)
 	seed = crypto.Keccak512(seed)
 	seed = append(seed, prevHash[:]...)
-	for _, tx := range(txs) {
+	for _, tx := range txs {
 		decoded, err := hex.DecodeString(tx.Hash)
 		if err != nil {
 			log.Fatal(err)
@@ -117,6 +133,22 @@ func getTXRootHash(txs []Transaction, prevHash [32]byte) []byte{
 	return crypto.Keccak256(seed)
 }
 
-func applyBalanceChange() {
 
+func updateBalance(accs map[string]int, txs []Transaction) error {
+	for _, tx := range txs {
+		_, ok := accs[tx.From]
+		if !ok {
+			accs[tx.From] = InitBalance
+		}
+		_, ok = accs[tx.To]
+		if !ok {
+			accs[tx.From] = InitBalance
+		}
+		if accs[tx.From] < tx.Value {
+			return fmt.Errorf("Balance Error")
+		}
+		accs[tx.From] -= tx.Value
+		accs[tx.To] += tx.Value
+	}
+	return nil
 }
