@@ -15,12 +15,13 @@ func main() {
 		log.Fatal("dialing:", err)
 	}
 	// Synchronous call
-	args := &Args{ From: "abc", To: "def", Value: 10}
-	var reply int
+	args := &Args{ From: "abc", To: "ggg", Value: 43}
+	var reply string
 	c := jsonrpc.NewClient(client)
-	err = c.Call("Calculator.Add", args, &reply)
+	err = c.Call("Dealer.AcceptTX", args, &reply)
 	if err != nil {
 		log.Fatal("arith error:", err)
 	}
-	fmt.Printf("Result: %d+%d=%d\n", args.X, args.Y, reply)
+	fmt.Printf("Result: %s",reply)
+
 }

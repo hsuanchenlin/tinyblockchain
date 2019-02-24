@@ -1,3 +1,5 @@
 .idea
 txs/*
+state/*
+blks/*
 history/*

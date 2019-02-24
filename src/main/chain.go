@@ -65,16 +65,18 @@ func main() {
 		var bh [32]byte
 		copy(bh[:], txRootHash)
 
-		miner := mine.Miner{TargetPrefixZeroes:0, BlockHash:bh, ThreadNumber:4, Nonce:0}
+		miner := mine.Miner{TargetPrefixZeroes:1, PreviousBlockHash:bh, ThreadNumber:4, Nonce:0}
 		ch := make(chan int)
 		go miner.Start(ch, bh[:])
 		header := types.Header{nil, bh, blockchain.Last.Header.BlockHash, 0, 0}
 		blk := types.Block{  &header}
 		blk.Header.Nonce = <-ch
+		blk.Header.BlockHash = calHashByNonce(blk.Header.Nonce, bh)
 		blockchain.Last = &blk
 		expire := <- t.C
 		fmt.Printf("Expiration time: %v.\n", expire)
 		updateBalance(accs, txs)
+		blk.WriteFile("../../blks")
 	}
 }
 
@@ -151,4 +153,15 @@ func updateBalance(accs map[string]int, txs []Transaction) error {
 		accs[tx.To] += tx.Value
 	}
 	return nil
+}
+
+func calHashByNonce(nonce int, blockhash types.Hash) types.Hash{
+
+	seed := make([]byte, 40)
+	seed = append(seed, byte(nonce))
+	seed = append(seed, blockhash[:]...)
+	hashRes := crypto.Keccak256(seed)
+	var gh [32]byte
+	copy(gh[:], hashRes)
+	return gh
 }

@@ -11,7 +11,7 @@ import (
 type Miner struct {
 	//worker *Worker
 	TargetPrefixZeroes uint8
-	BlockHash          types.Hash
+	PreviousBlockHash  types.Hash
 	ThreadNumber       int
 	Nonce              int
 }
@@ -24,28 +24,23 @@ func (miner *Miner) mine(c chan int, thNum int, nonce int) (bool, int) {
 		}
 		nonce += thNum
 		seed := make([]byte, 40)
-		seed = crypto.Keccak512(seed)
 		seed = append(seed, byte(nonce))
-		seed = append(seed, miner.BlockHash[:]...)
+		seed = append(seed, miner.PreviousBlockHash[:]...)
 		hashRes := crypto.Keccak256(seed)
 
 		if miningHashCmp(miner.TargetPrefixZeroes, hashRes) {
 			miner.Nonce = nonce
-			s := fmt.Sprintf("%s", hex.EncodeToString(hashRes))
+			//s := fmt.Sprintf("%s", hex.EncodeToString(hashRes))
 			fmt.Println("success routine")
-			fmt.Println(s)
-			fmt.Printf("%d %d\n",s[7], s[8])
-			fmt.Println("------")
+			//fmt.Println(s)
+			//fmt.Printf("%d %d\n",s[7], s[8])
+			//fmt.Println("------")
 			c <- nonce
 			return true, nonce
 		}
 	}
 	fmt.Printf("fail routine %d\n", thNum)
 	return false, 0
-}
-
-func (self *Miner) update() {
-
 }
 
 func (miner *Miner) Start(ch chan int, rootHash []byte) {
@@ -71,29 +66,31 @@ func (miner *Miner) Start(ch chan int, rootHash []byte) {
 }
 
 func miningHashCmp(targetPrefixZeroes uint8, miningHash []byte) bool{
-	var i, prev uint8
+	var i uint8
 	shash := hex.EncodeToString(miningHash)
-	prev = shash[0]
+
 	for i=0; i < targetPrefixZeroes; i++ {
-		if  prev != shash[i] {
+		//rune 48 - 57 => 0 -> 9
+		if  shash[i] != 48 {
 			return false
 		}
-		prev = shash[i]
+
 	}
+	fmt.Printf("hash %s\n", shash)
 	return true
 }
 
-
-func hex2int(ch rune) int {
-	chInt := int(ch)
-	if chInt >= 48 && chInt <= 57 {
-		return chInt - 48
-	}
-	if chInt >= 65 && chInt <= 70 {
-		return chInt - 55
-	}
-	if chInt >= 97 && chInt <= 102 {
-		return chInt - 87
-	}
-	return -1
-}
+//
+//func hex2int(ch rune) int {
+//	chInt := int(ch)
+//	if chInt >= 48 && chInt <= 57 {
+//		return chInt - 48
+//	}
+//	if chInt >= 65 && chInt <= 70 {
+//		return chInt - 55
+//	}
+//	if chInt >= 97 && chInt <= 102 {
+//		return chInt - 87
+//	}
+//	return -1
+//}
