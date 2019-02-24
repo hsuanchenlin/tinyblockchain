@@ -34,7 +34,9 @@ func (d *Dealer) AcceptTX(args *Args,  reply *string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	accs := acc.Accs
+	fmt.Printf("from %s v %d\n", args.From, accs[args.From])
 	if _, ok := accs[args.To]; !ok {
 		//do something here
 		accs[args.To] = 100
@@ -45,6 +47,7 @@ func (d *Dealer) AcceptTX(args *Args,  reply *string) error {
 			*reply = "not enough"
 			valid = false
 		} else {
+			accs[args.From] -= args.Value
 			*reply = "commit success"
 			valid = true
 		}
@@ -59,6 +62,7 @@ func (d *Dealer) AcceptTX(args *Args,  reply *string) error {
 			valid = true
 		}
 	}
+	fmt.Printf("after from %s v %d\n", args.From, accs[args.From])
 	if valid {
 		fmt.Println(valid)
 		acc.Nonce++

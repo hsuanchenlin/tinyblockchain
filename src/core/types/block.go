@@ -5,17 +5,16 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"time"
 )
 
 type Hash [32]byte
 type Address [32]byte
 
 type Header struct {
-	Transactions []*Transaction
+	Transactions []Transaction
 	BlockHash Hash
 	ParentHash Hash
-	BlockHeight uint64
+	BlockHeight int
 	Nonce int
 }
 
@@ -24,20 +23,15 @@ type Block struct {
 }
 
 type HeaderLog struct {
-	Transactions []*Transaction
+	Transactions []Transaction
 	BlockHash string
 	ParentHash string
-	BlockHeight uint64
+	BlockHeight int
 	Nonce int
 }
 
 type BlockLog struct {
 	HeaderLog *HeaderLog
-}
-
-func (blk *Block) addTX(tx *Transaction) (timestamp time.Time, err error) {
-	blk.Header.Transactions = append(blk.Header.Transactions, tx)
-	return time.Now(), nil
 }
 
 func (blk *Block) WriteFile(filePath string) error {

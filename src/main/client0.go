@@ -15,7 +15,7 @@ func main() {
 		log.Fatal("dialing:", err)
 	}
 	// Synchronous call
-	args := &Args{ From: "abc", To: "ggg", Value: 99}
+	args := &Args{ From: "tyy1", To: "err", Value: 99}
 	var reply string
 	c := jsonrpc.NewClient(client)
 	err = c.Call("Dealer.AcceptTX", args, &reply)
@@ -24,7 +24,7 @@ func main() {
 	}
 	fmt.Printf("Result0: %s\n",reply)
 
-	args = &Args{ From: "rrr", To: "ttt", Value: 33}
+	args = &Args{ From: "rrr", To: "ttt", Value: 67}
 	//c = jsonrpc.NewClient(client)
 	err = c.Call("Dealer.AcceptTX", args, &reply)
 	if err != nil {

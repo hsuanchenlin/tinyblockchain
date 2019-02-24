@@ -18,16 +18,6 @@ const (
 	BlockGenTime = 10 * time.Second
 )
 
-type TXS struct {
-	TXS []Transaction `json:"txs"`
-}
-
-type Transaction struct {
-	Hash   string `json:"hash"`
-	From   string `json:"from"`
-	To    string `json:"to"`
-	Value int    `json:"value"`
-}
 
 func main() {
 
@@ -44,6 +34,7 @@ func main() {
 	genesisBlk := types.Block{  &genesisHeader}
 	blockchain.Last = &genesisBlk
 
+	blockHeight := 0
 	for {
 		t := time.NewTimer(BlockGenTime)
 
@@ -51,15 +42,20 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		var txs []Transaction
+		var txs []types.Transaction
+
 		for _, f := range files {
 			fmt.Println(f.Name())
-			err = wrapping("../../txs/", f.Name(), txs)
-			if err != nil {
+			tx, errtx := wrapping("../../txs/", f.Name())
+			if errtx != nil {
 				log.Fatal(err)
 			}
+			txs = append(txs, tx)
 		}
-
+		fmt.Println("---txs---")
+		for _, t := range txs {
+			fmt.Printf("tx %s %s %d\n", t.From,t.To,t.Value)
+		}
 		txRootHash := getTXRootHash(txs, blockchain.Last.Header.BlockHash)
 
 		var bh [32]byte
@@ -68,75 +64,57 @@ func main() {
 		miner := mine.Miner{TargetPrefixZeroes:1, PreviousBlockHash:bh, ThreadNumber:4, Nonce:0}
 		ch := make(chan int)
 		go miner.Start(ch, bh[:])
-		header := types.Header{nil, bh, blockchain.Last.Header.BlockHash, 0, 0}
+		header := types.Header{Transactions:txs, BlockHash:bh, ParentHash:blockchain.Last.Header.BlockHash, BlockHeight:blockHeight, Nonce:0}
 		blk := types.Block{  &header}
 		blk.Header.Nonce = <-ch
 		blk.Header.BlockHash = calHashByNonce(blk.Header.Nonce, bh)
 		blockchain.Last = &blk
 		expire := <- t.C
 		fmt.Printf("Expiration time: %v.\n", expire)
+		for _, t := range txs {
+			fmt.Printf("tx %s %s %d\n", t.From,t.To,t.Value)
+		}
+
 		updateBalance(accs, txs)
 		blk.WriteFile("../../blks")
+		blockHeight++
 	}
 }
 
 
 
-func wrapping(path string, fileName string, wtx []Transaction) error {
-	jsonFile, err := os.Open(path+fileName)
-	// if we os.Open returns an error then handle it
+func wrapping(path string, fileName string) (types.Transaction, error) {
+
+	file, err := os.Open(path+fileName)
 	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("Successfully Opened users.json")
-	// defer the closing of our jsonFile so that we can parse it later on
-	defer jsonFile.Close()
-
-	// read our opened xmlFile as a byte array.
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-
-	// we initialize our Users array
-	var txs TXS
-
-	// we unmarshal our byteArray which contains our
-	// jsonFile's content into 'users' which we defined above
-	json.Unmarshal(byteValue, &txs)
-
-	// we iterate through every user within our users array and
-	// print out the user Type, their name, and their facebook url
-	// as just an example
-	for i := 0; i < len(txs.TXS); i++ {
-		//txhash := hex.EncodeToString(txs.TXS[i].Hash[:])
-		fmt.Printf("hash: %s\n", txs.TXS[i].Hash)
-		fmt.Printf("from: %s\n", txs.TXS[i].From)
-		fmt.Printf("to: %s\n", txs.TXS[i].To)
-		fmt.Printf("value %d\n", txs.TXS[i].Value)
+		log.Fatal(err)
 	}
 
+	dec := json.NewDecoder(file)
+
+	var tx types.Transaction
+	err = dec.Decode(&tx)
+	//fmt.Printf("%s\n",tx.From)
 	err = os.Rename(fmt.Sprintf("%s/%s", path, fileName), fmt.Sprintf("../../history/%s", fileName))
 	if err != nil {
 		panic(err)
 	}
-	wtx = append(wtx, txs.TXS[0])
-	return nil
+
+	return tx,nil
 }
 
-func getTXRootHash(txs []Transaction, prevHash [32]byte) []byte{
+func getTXRootHash(txs []types.Transaction, prevHash [32]byte) []byte{
 	seed := make([]byte, 40)
 	seed = crypto.Keccak512(seed)
 	seed = append(seed, prevHash[:]...)
 	for _, tx := range txs {
-		decoded, err := hex.DecodeString(tx.Hash)
-		if err != nil {
-			log.Fatal(err)
-		}
-		seed = append(seed, decoded...)
+		seed = append(seed, tx.Hash[:]...)
 	}
 	return crypto.Keccak256(seed)
 }
 
 
-func updateBalance(accs map[string]int, txs []Transaction) error {
+func updateBalance(accs map[string]int, txs []types.Transaction) error {
 	for _, tx := range txs {
 		_, ok := accs[tx.From]
 		if !ok {
