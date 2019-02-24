@@ -1,11 +1,14 @@
 package server
 
 import (
-	"amis_test/src/core/types"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
 	"log"
 	"os"
+	"amis_test/src/core/types"
+	"math/rand"
 )
 
 type Args struct {
@@ -38,7 +41,6 @@ func (d *Dealer) AcceptTX(args *Args,  reply *string) error {
 	}
 
 	if val, ok := accs[args.From]; ok {
-		//do something here
 		if args.Value > val {
 			*reply = "not enough"
 			valid = false
@@ -50,16 +52,26 @@ func (d *Dealer) AcceptTX(args *Args,  reply *string) error {
 		if args.Value > 100 {
 			*reply = "not enough"
 			valid = false
+		} else {
+			accs[args.From] = 100 - args.Value
+			accs[args.To] += args.Value
+			*reply = "valid"
+			valid = true
 		}
 	}
 	if valid {
 		fmt.Println(valid)
 		acc.Nonce++
 		writeAcc(acc)
+		//random hash
 
-
-		tx := types.Transaction{From:args}
-		addTX()
+		seed := make([]byte, 40)
+		seed = append(seed, byte(rand.Int()))
+		hash := crypto.Keccak256(seed)
+		var txh [32]byte
+		copy(txh[:], hash)
+		tx := types.Transaction{From:args.From, To:args.To, Value:args.Value, Hash:txh}
+		writeTX(tx)
 	}
 	return nil
 }
@@ -83,7 +95,7 @@ func getAcc() (Acc, error) {
 func writeAcc(acc Acc) {
 	file, err := os.Create("state/state.json")
 	if err != nil {
-		fmt.Println("writeerr")
+		fmt.Println("write  err")
 		log.Fatal(err)
 	}
 	enc := json.NewEncoder(file)
@@ -91,8 +103,9 @@ func writeAcc(acc Acc) {
 	file.Close()
 }
 
-func addTX(tx types.Transaction) {
-	file, err := os.Create("txs/state.json")
+func writeTX(tx types.Transaction) {
+	hash := hex.EncodeToString(tx.Hash[:])
+	file, err := os.Create("txs/"+hash+".json")
 	if err != nil {
 		log.Fatal(err)
 	}

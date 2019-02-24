@@ -22,9 +22,15 @@ func main() {
 	if err != nil {
 		log.Fatal("rpc error:", err)
 	}
-	fmt.Printf("Result: %s",reply)
+	fmt.Printf("Result0: %s\n",reply)
 
-
+	args = &Args{ From: "rrr", To: "ttt", Value: 33}
+	//c = jsonrpc.NewClient(client)
+	err = c.Call("Dealer.AcceptTX", args, &reply)
+	if err != nil {
+		log.Fatal("rpc error:", err)
+	}
+	fmt.Printf("Result1: %s\n",reply)
 
 }
 
