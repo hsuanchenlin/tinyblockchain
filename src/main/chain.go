@@ -53,9 +53,7 @@ func main() {
 			txs = append(txs, tx)
 		}
 		fmt.Println("---txs---")
-		for _, t := range txs {
-			fmt.Printf("tx %s %s %d\n", t.From,t.To,t.Value)
-		}
+
 		txRootHash := getTXRootHash(txs, blockchain.Last.Header.BlockHash)
 
 		var bh [32]byte
